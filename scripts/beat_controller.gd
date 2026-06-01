@@ -4,6 +4,7 @@ extends Node2D
 ## Valeur de test : 206ms ≈ 22% du beat à 128 BPM.
 ## À ajuster par niveau de difficulté (étape 5) : 250ms easy → 80ms expert.
 @export var hit_window_ms: float = 206.0
+@export var speed: float = 300.0
 
 @onready var player_rect: ColorRect = $ColorRect
 
@@ -29,13 +30,22 @@ func _on_song_changed(song_data: Dictionary) -> void:
 	beat_interval = 60.0 / song_data["bpm"]
 	song_offset = song_data.get("offset", 0.0)
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	_handle_movement(delta)
+	look_at(get_global_mouse_position())
 	if not MusicManager.is_playing():
 		return
 	var phase_norm := fmod(_compensated_pos(), beat_interval) / beat_interval
-	# Pulse symétrique : gros AUX DEUX extrémités (= là où le beat tombe)
 	var pulse := 1.0 + 0.12 * (cos(TAU * phase_norm) * 0.5 + 0.5)
 	player_rect.scale = Vector2(pulse, pulse)
+
+func _handle_movement(delta: float) -> void:
+	var direction := Vector2.ZERO
+	if Input.is_key_pressed(KEY_Z): direction.y -= 1
+	if Input.is_key_pressed(KEY_S): direction.y += 1
+	if Input.is_key_pressed(KEY_Q): direction.x -= 1
+	if Input.is_key_pressed(KEY_D): direction.x += 1
+	position += direction.normalized() * speed * delta
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
