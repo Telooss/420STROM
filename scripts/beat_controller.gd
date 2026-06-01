@@ -1,6 +1,6 @@
 extends Node2D
 
-@export var hit_window_ms: float = 150.0
+@export var hit_window_ms: float = 200.0
 
 @onready var player_rect: ColorRect = $ColorRect
 
