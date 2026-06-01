@@ -8,6 +8,8 @@ extends Node2D
 
 @onready var player_rect: ColorRect = $ColorRect
 
+const PROJECTILE_SCENE := preload("res://scenes/projectile.tscn")
+
 var beat_interval: float = 0.5
 var combo: int = 0
 var song_offset: float = 0.0
@@ -70,10 +72,19 @@ func _on_player_shoot() -> void:
 	var phase_pct := beat_phase / beat_interval * 100.0
 	print("phase: %.0f%%  →  %s" % [phase_pct, "THUNK x%d" % (combo + 1) if on_beat else "miss"])
 
+	_spawn_projectile(on_beat)
 	if on_beat:
 		_thunk()
 	else:
 		_miss()
+
+func _spawn_projectile(on_beat: bool) -> void:
+	var p = PROJECTILE_SCENE.instantiate()
+	get_parent().add_child(p)
+	p.global_position = global_position
+	p.direction = Vector2.RIGHT.rotated(rotation)
+	var rect := p.get_node("ColorRect") as ColorRect
+	rect.color = Color(1.0, 1.0, 1.0, 1) if on_beat else Color(0.5, 0.5, 0.5, 0.6)
 
 func _compensated_pos() -> float:
 	return maxf(MusicManager.get_playback_position() - song_offset, 0.0)
