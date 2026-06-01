@@ -24,6 +24,8 @@ var _last_press_time: float = -999.0
 var _tap_times: Array[float] = []
 var _calibrating: bool = false
 var _calib_phases: Array[float] = []
+var _last_phase: float = 0.0
+var _click_player: AudioStreamPlayer
 
 const BASE_COLOR  := Color(0.2, 0.6, 1.0, 1)
 const THUNK_COLOR := Color(1.0, 1.0, 1.0, 1)
@@ -31,6 +33,10 @@ const MISS_COLOR  := Color(0.8, 0.1, 0.1, 1)
 
 func _ready() -> void:
 	player_rect.color = BASE_COLOR
+	_click_player = AudioStreamPlayer.new()
+	_click_player.stream = _make_click_stream()
+	_click_player.volume_db = 3.0
+	add_child(_click_player)
 	_load_settings()
 	MusicManager.song_changed.connect(_on_song_changed)
 	var songs := MusicManager.scan_songs()
@@ -52,6 +58,10 @@ func _process(delta: float) -> void:
 	var phase_norm := fmod(_compensated_pos(), beat_interval) / beat_interval
 	var pulse := 1.0 + 0.12 * (cos(TAU * phase_norm) * 0.5 + 0.5)
 	player_rect.scale = Vector2(pulse, pulse)
+	# Click sonore sur chaque beat pendant la calibration (même pipeline audio que la musique)
+	if _calibrating and phase_norm < 0.05 and _last_phase > 0.95:
+		_click_player.play()
+	_last_phase = phase_norm
 
 func _handle_movement(delta: float) -> void:
 	var direction := Vector2.ZERO
@@ -205,3 +215,21 @@ func _miss() -> void:
 	player_rect.color = MISS_COLOR
 	await get_tree().create_timer(0.1).timeout
 	player_rect.color = BASE_COLOR
+
+func _make_click_stream() -> AudioStreamWAV:
+	# Génère un beep 880Hz de 60ms — même bus audio que la musique = même latence
+	var wav := AudioStreamWAV.new()
+	wav.format = AudioStreamWAV.FORMAT_16_BITS
+	wav.mix_rate = 44100
+	wav.stereo = false
+	var samples := int(44100 * 0.06)
+	var data := PackedByteArray()
+	data.resize(samples * 2)
+	for i in samples:
+		var t := float(i) / 44100.0
+		var envelope := 1.0 - (t / 0.06)
+		var sample := int(envelope * 28000.0 * sin(TAU * 880.0 * t))
+		data[i * 2]     = sample & 0xFF
+		data[i * 2 + 1] = (sample >> 8) & 0xFF
+	wav.data = data
+	return wav
