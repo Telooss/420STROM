@@ -1,6 +1,9 @@
 extends Node2D
 
-@export var hit_window_ms: float = 200.0
+## Fenêtre de timing en ms (±moitié de chaque côté du beat).
+## Valeur de test : 206ms ≈ 22% du beat à 128 BPM.
+## À ajuster par niveau de difficulté (étape 5) : 250ms easy → 80ms expert.
+@export var hit_window_ms: float = 206.0
 
 @onready var player_rect: ColorRect = $ColorRect
 
