@@ -22,6 +22,7 @@ const MISS_COLOR  := Color(0.8, 0.1, 0.1, 1)
 func _ready() -> void:
 	player_rect.color = BASE_COLOR
 	MusicManager.song_changed.connect(_on_song_changed)
+	MusicManager.bpm_updated.connect(_on_bpm_updated)
 	var songs := MusicManager.scan_songs()
 	if songs.is_empty():
 		push_error("BeatController: aucune chanson trouvée dans audio/songs/")
@@ -29,8 +30,11 @@ func _ready() -> void:
 	MusicManager.load_song(songs[0])
 
 func _on_song_changed(song_data: Dictionary) -> void:
-	beat_interval = 60.0 / song_data["bpm"]
 	song_offset = song_data.get("offset", 0.0)
+	beat_interval = 60.0 / MusicManager.current_bpm
+
+func _on_bpm_updated(bpm: float) -> void:
+	beat_interval = 60.0 / bpm
 
 func _process(delta: float) -> void:
 	_handle_movement(delta)
