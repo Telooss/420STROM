@@ -9,6 +9,7 @@ var _cursor: ColorRect
 var _bpm_label: Label
 var _tap_label: Label
 var _calib_label: Label
+var _combo_label: Label
 
 var beat_interval: float = 0.5
 
@@ -29,9 +30,14 @@ func _ready() -> void:
 	_calib_label.add_theme_font_size_override("font_size", 22)
 	_calib_label.visible = false
 
+	_combo_label = _make_label(Vector2(vp.x / 2.0 - 60, vp.y * 0.35), Color(1, 1, 1, 1))
+	_combo_label.add_theme_font_size_override("font_size", 48)
+	_combo_label.text = ""
+
 	MusicManager.song_changed.connect(_on_song_changed)
 	get_parent().tap_bpm_updated.connect(_on_tap_bpm_updated)
 	get_parent().calibration_status.connect(_on_calibration_status)
+	get_parent().combo_changed.connect(_on_combo_changed)
 
 func _on_song_changed(_data: Dictionary) -> void:
 	beat_interval = 60.0 / MusicManager.current_bpm
@@ -69,6 +75,17 @@ func _on_calibration_status(text: String) -> void:
 	if text.begins_with("Calibration OK"):
 		await get_tree().create_timer(3.0).timeout
 		_calib_label.visible = false
+
+func _on_combo_changed(count: int) -> void:
+	if count == 0:
+		_combo_label.text = ""
+		return
+	_combo_label.text = "x%d" % count
+	_combo_label.modulate = Color(1, 1, 1, 1)
+	# Pulse de scale au hit
+	var tween := create_tween()
+	tween.tween_property(_combo_label, "scale", Vector2(1.4, 1.4), 0.05)
+	tween.tween_property(_combo_label, "scale", Vector2(1.0, 1.0), 0.1)
 
 func _make_label(pos: Vector2, color: Color) -> Label:
 	var l := Label.new()

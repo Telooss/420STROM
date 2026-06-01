@@ -16,6 +16,7 @@ const CALIB_TAPS       := 8
 
 signal tap_bpm_updated(bpm: float)
 signal calibration_status(text: String)
+signal combo_changed(count: int)
 
 var beat_interval: float = 0.5
 var combo: int = 0
@@ -204,6 +205,7 @@ func _thunk() -> void:
 
 func _thunk_hit() -> void:
 	combo += 1
+	combo_changed.emit(combo)
 	player_rect.color = THUNK_COLOR
 	Engine.time_scale = 0.0
 	await get_tree().create_timer(0.07, true, false, true).timeout
@@ -212,6 +214,7 @@ func _thunk_hit() -> void:
 
 func _miss() -> void:
 	combo = 0
+	combo_changed.emit(0)
 	player_rect.color = MISS_COLOR
 	await get_tree().create_timer(0.1).timeout
 	player_rect.color = BASE_COLOR
