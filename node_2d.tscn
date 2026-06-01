@@ -1,10 +1,13 @@
 [gd_scene format=3 uid="uid://bvy0iclloicfe"]
 
 [ext_resource type="Script" path="res://scripts/beat_controller.gd" id="1_beat"]
+[ext_resource type="PackedScene" uid="uid://hud00420storm" path="res://scenes/hud.tscn" id="2_hud"]
 
 [node name="Node2D" type="Node2D" unique_id=7197841]
 position = Vector2(576, 324)
 script = ExtResource("1_beat")
+
+[node name="HUD" parent="." instance=ExtResource("2_hud")]
 
 [node name="ColorRect" type="ColorRect" parent="." unique_id=407268278]
 offset_left = -40.0
