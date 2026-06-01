@@ -8,34 +8,35 @@ var _zone: ColorRect
 var _cursor: ColorRect
 var _bpm_label: Label
 var _tap_label: Label
+var _calib_label: Label
 
 var beat_interval: float = 0.5
 
 const BAR_H := 14
 
 func _ready() -> void:
-	var vp_w := get_viewport().get_visible_rect().size.x
+	var vp := get_viewport().get_visible_rect().size
 
-	_bar_bg   = _make_rect(Color(0.08, 0.08, 0.12, 1), Vector2(vp_w, BAR_H), Vector2.ZERO)
-	_zone     = _make_rect(Color(0.2, 1.0, 0.4, 0.25), Vector2(1, BAR_H), Vector2.ZERO)
-	_cursor   = _make_rect(Color(1, 1, 1, 1), Vector2(4, BAR_H), Vector2.ZERO)
+	_bar_bg  = _make_rect(Color(0.08, 0.08, 0.12, 1), Vector2(vp.x, BAR_H), Vector2.ZERO)
+	_zone    = _make_rect(Color(0.2, 1.0, 0.4, 0.25), Vector2(1, BAR_H), Vector2.ZERO)
+	_cursor  = _make_rect(Color(1, 1, 1, 1), Vector2(4, BAR_H), Vector2.ZERO)
 
-	_bpm_label = _make_label(Vector2(8, BAR_H + 2), Color(0.8, 1.0, 0.8, 1))
-	_tap_label = _make_label(Vector2(vp_w - 160, BAR_H + 2), Color(1.0, 0.9, 0.4, 1))
+	_bpm_label  = _make_label(Vector2(8, BAR_H + 2), Color(0.8, 1.0, 0.8, 1))
+	_tap_label  = _make_label(Vector2(vp.x - 160, BAR_H + 2), Color(1.0, 0.9, 0.4, 1))
 	_tap_label.text = "TAP: —"
 
+	_calib_label = _make_label(Vector2(vp.x / 2.0 - 200, vp.y / 2.0 - 20), Color(1, 1, 0.3, 1))
+	_calib_label.add_theme_font_size_override("font_size", 22)
+	_calib_label.visible = false
+
 	MusicManager.song_changed.connect(_on_song_changed)
-	MusicManager.bpm_updated.connect(_on_bpm_updated)
-	# Le parent EST le Node2D avec le beat_controller
 	get_parent().tap_bpm_updated.connect(_on_tap_bpm_updated)
+	get_parent().calibration_status.connect(_on_calibration_status)
 
 func _on_song_changed(_data: Dictionary) -> void:
-	_on_bpm_updated(MusicManager.current_bpm)
-
-func _on_bpm_updated(bpm: float) -> void:
-	beat_interval = 60.0 / bpm
+	beat_interval = 60.0 / MusicManager.current_bpm
 	_refresh_zone()
-	_bpm_label.text = "%d BPM  /  %d" % [roundi(bpm), roundi(MusicManager.base_bpm)]
+	_bpm_label.text = "%d BPM" % roundi(MusicManager.base_bpm)
 
 func _refresh_zone() -> void:
 	var vp_w := get_viewport().get_visible_rect().size.x
@@ -48,20 +49,26 @@ func _process(_delta: float) -> void:
 	if not MusicManager.is_playing():
 		return
 	var vp_w := get_viewport().get_visible_rect().size.x
-	# Décale de 0.5 : le curseur est au CENTRE pile au moment du beat
 	var raw_phase := fmod(MusicManager.get_playback_position(), beat_interval) / beat_interval
 	var display_phase := fmod(raw_phase + 0.5, 1.0)
 	_cursor.position.x = display_phase * vp_w - 2.0
-
 	var half_norm := (hit_window_ms / 1000.0 / 2.0) / beat_interval
-	var in_zone := absf(display_phase - 0.5) < half_norm
-	_cursor.color = Color(0.3, 1.0, 0.5, 1) if in_zone else Color(1, 1, 1, 0.9)
+	_cursor.color = Color(0.3, 1.0, 0.5, 1) if absf(display_phase - 0.5) < half_norm else Color(1, 1, 1, 0.9)
 
 func _on_tap_bpm_updated(bpm: float) -> void:
 	_tap_label.text = "TAP: %d BPM" % roundi(bpm)
-	# Colore en vert si proche du BPM cible (±5), orange sinon
-	var diff := absf(bpm - MusicManager.base_bpm)
-	_tap_label.modulate = Color(0.3, 1.0, 0.4, 1) if diff <= 5.0 else Color(1.0, 0.9, 0.4, 1)
+	_tap_label.modulate = Color(0.3, 1.0, 0.4, 1) if absf(bpm - MusicManager.base_bpm) <= 5.0 else Color(1.0, 0.9, 0.4, 1)
+
+func _on_calibration_status(text: String) -> void:
+	if text.is_empty():
+		_calib_label.visible = false
+		return
+	_calib_label.text = text
+	_calib_label.visible = true
+	# Cache automatiquement le message de succès après 3s
+	if text.begins_with("Calibration OK"):
+		await get_tree().create_timer(3.0).timeout
+		_calib_label.visible = false
 
 func _make_label(pos: Vector2, color: Color) -> Label:
 	var l := Label.new()
