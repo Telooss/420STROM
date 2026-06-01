@@ -1,8 +1,9 @@
 [gd_scene format=3 uid="uid://bvy0iclloicfe"]
 
-[node name="Node2D" type="Node2D" unique_id=7197841]
+[ext_resource type="Script" path="res://scripts/beat_controller.gd" id="1_beat"]
 
-[node name="AudioStreamPlayer" type="AudioStreamPlayer" parent="." unique_id=1079923483]
+[node name="Node2D" type="Node2D" unique_id=7197841]
+script = ExtResource("1_beat")
 
 [node name="ColorRect" type="ColorRect" parent="." unique_id=407268278]
 offset_left = 68.0
