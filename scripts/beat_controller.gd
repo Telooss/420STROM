@@ -33,7 +33,7 @@ func _ready() -> void:
 		push_error("BeatController: aucune chanson trouvée dans audio/songs/")
 		return
 	MusicManager.load_song(songs[0])
-	_spawn_enemy()
+	_spawn_enemy.call_deferred()
 
 func _on_song_changed(song_data: Dictionary) -> void:
 	song_offset = song_data.get("offset", 0.0)

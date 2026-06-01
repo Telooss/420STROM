@@ -29,7 +29,7 @@ func _ready() -> void:
 	# Le parent EST le Node2D avec le beat_controller
 	get_parent().tap_bpm_updated.connect(_on_tap_bpm_updated)
 
-func _on_song_changed(data: Dictionary) -> void:
+func _on_song_changed(_data: Dictionary) -> void:
 	_on_bpm_updated(MusicManager.current_bpm)
 
 func _on_bpm_updated(bpm: float) -> void:
