@@ -10,6 +10,7 @@ extends Node2D
 @onready var player_rect: ColorRect = $ColorRect
 
 const PROJECTILE_SCENE := preload("res://scenes/projectile.tscn")
+const ENEMY_SCENE      := preload("res://scenes/enemy.tscn")
 
 signal tap_bpm_updated(bpm: float)
 
@@ -32,6 +33,7 @@ func _ready() -> void:
 		push_error("BeatController: aucune chanson trouvée dans audio/songs/")
 		return
 	MusicManager.load_song(songs[0])
+	_spawn_enemy()
 
 func _on_song_changed(song_data: Dictionary) -> void:
 	song_offset = song_data.get("offset", 0.0)
@@ -68,7 +70,6 @@ func _on_player_shoot() -> void:
 
 	_update_tap_bpm()
 
-	# Cooldown : impossible de valider deux fois sur le même beat
 	var now := Time.get_ticks_msec() / 1000.0
 	if now - _last_press_time < beat_interval * 0.5:
 		return
@@ -89,16 +90,36 @@ func _on_player_shoot() -> void:
 		_miss()
 
 func _spawn_projectile(on_beat: bool) -> void:
-	var p = PROJECTILE_SCENE.instantiate()
+	var p := PROJECTILE_SCENE.instantiate()
+	p.on_beat = on_beat
+	p.direction = Vector2.RIGHT.rotated(rotation)
 	get_parent().add_child(p)
 	p.global_position = global_position
-	p.direction = Vector2.RIGHT.rotated(rotation)
 	var rect := p.get_node("ColorRect") as ColorRect
 	rect.color = Color(1.0, 1.0, 1.0, 1) if on_beat else Color(0.5, 0.5, 0.5, 0.6)
 
+func _spawn_enemy() -> void:
+	var e := ENEMY_SCENE.instantiate()
+	e.destroyed.connect(_on_enemy_destroyed)
+	get_parent().add_child(e)
+	var vp := get_viewport_rect()
+	var spawn_pos: Vector2
+	# Spawn hors de la zone joueur (min 200px de distance)
+	while true:
+		spawn_pos = Vector2(randf_range(80, vp.size.x - 80), randf_range(80, vp.size.y - 80))
+		if spawn_pos.distance_to(global_position) >= 200.0:
+			break
+	e.global_position = spawn_pos
+
+func _on_enemy_destroyed(on_beat: bool) -> void:
+	if on_beat:
+		_thunk_hit()
+	# Respawn après un court délai
+	await get_tree().create_timer(1.0).timeout
+	_spawn_enemy()
+
 func _update_tap_bpm() -> void:
 	var now := Time.get_ticks_msec() / 1000.0
-	# Reset si pause de plus de 2 secondes
 	if not _tap_times.is_empty() and now - _tap_times.back() > 2.0:
 		_tap_times.clear()
 	_tap_times.append(now)
@@ -116,9 +137,18 @@ func _compensated_pos() -> float:
 	return maxf(MusicManager.get_playback_position() - song_offset, 0.0)
 
 func _thunk() -> void:
+	# Feedback visuel au tir on-beat
+	player_rect.color = THUNK_COLOR
+	await get_tree().create_timer(0.05).timeout
+	player_rect.color = BASE_COLOR
+
+func _thunk_hit() -> void:
+	# Le vrai THUNK : freeze du jeu + flash
 	combo += 1
 	player_rect.color = THUNK_COLOR
-	await get_tree().create_timer(0.06).timeout
+	Engine.time_scale = 0.0
+	await get_tree().create_timer(0.07, true, false, true).timeout
+	Engine.time_scale = 1.0
 	player_rect.color = BASE_COLOR
 
 func _miss() -> void:
