@@ -1,0 +1,12 @@
+[gd_scene format=3 uid="uid://bvy0iclloicfe"]
+
+[node name="Node2D" type="Node2D" unique_id=7197841]
+
+[node name="AudioStreamPlayer" type="AudioStreamPlayer" parent="." unique_id=1079923483]
+
+[node name="ColorRect" type="ColorRect" parent="." unique_id=407268278]
+offset_left = 68.0
+offset_top = -183.0
+offset_right = 208.0
+offset_bottom = -39.0
+color = Color(0.0142752165, 0.014275218, 0.014275218, 1)
