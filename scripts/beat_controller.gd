@@ -27,6 +27,7 @@ var _calibrating: bool = false
 var _calib_phases: Array[float] = []
 var _last_phase: float = 0.0
 var _click_player: AudioStreamPlayer
+var _hit_cooldown: bool = false
 
 const BASE_COLOR  := Color(0.2, 0.6, 1.0, 1)
 const THUNK_COLOR := Color(1.0, 1.0, 1.0, 1)
@@ -221,13 +222,15 @@ func _miss() -> void:
 	player_rect.color = BASE_COLOR
 
 func on_enemy_contact() -> void:
-	if combo == 0:
+	if _hit_cooldown:
 		return
+	_hit_cooldown = true
 	combo = 0
 	combo_changed.emit(0)
 	player_rect.color = Color(1.0, 0.4, 0.0, 1)
-	await get_tree().create_timer(0.2).timeout
+	await get_tree().create_timer(0.5).timeout
 	player_rect.color = BASE_COLOR
+	_hit_cooldown = false
 
 func _make_click_stream() -> AudioStreamWAV:
 	# Génère un beep 880Hz de 60ms — même bus audio que la musique = même latence
