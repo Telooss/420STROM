@@ -10,10 +10,13 @@ extends Node2D
 
 const PROJECTILE_SCENE := preload("res://scenes/projectile.tscn")
 
+signal tap_bpm_updated(bpm: float)
+
 var beat_interval: float = 0.5
 var combo: int = 0
 var song_offset: float = 0.0
 var _last_press_time: float = -999.0
+var _tap_times: Array[float] = []
 
 const BASE_COLOR  := Color(0.2, 0.6, 1.0, 1)
 const THUNK_COLOR := Color(1.0, 1.0, 1.0, 1)
@@ -62,6 +65,8 @@ func _on_player_shoot() -> void:
 	if not MusicManager.is_playing():
 		return
 
+	_update_tap_bpm()
+
 	# Cooldown : impossible de valider deux fois sur le même beat
 	var now := Time.get_ticks_msec() / 1000.0
 	if now - _last_press_time < beat_interval * 0.5:
@@ -89,6 +94,22 @@ func _spawn_projectile(on_beat: bool) -> void:
 	p.direction = Vector2.RIGHT.rotated(rotation)
 	var rect := p.get_node("ColorRect") as ColorRect
 	rect.color = Color(1.0, 1.0, 1.0, 1) if on_beat else Color(0.5, 0.5, 0.5, 0.6)
+
+func _update_tap_bpm() -> void:
+	var now := Time.get_ticks_msec() / 1000.0
+	# Reset si pause de plus de 2 secondes
+	if not _tap_times.is_empty() and now - _tap_times.back() > 2.0:
+		_tap_times.clear()
+	_tap_times.append(now)
+	if _tap_times.size() > 8:
+		_tap_times = _tap_times.slice(_tap_times.size() - 8)
+	if _tap_times.size() < 2:
+		return
+	var total := 0.0
+	for i in range(1, _tap_times.size()):
+		total += _tap_times[i] - _tap_times[i - 1]
+	var avg_interval := total / (_tap_times.size() - 1)
+	tap_bpm_updated.emit(60.0 / avg_interval)
 
 func _compensated_pos() -> float:
 	return maxf(MusicManager.get_playback_position() - song_offset, 0.0)

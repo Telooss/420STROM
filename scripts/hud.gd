@@ -6,6 +6,7 @@ var _bar_bg: ColorRect
 var _zone: ColorRect
 var _cursor: ColorRect
 var _bpm_label: Label
+var _tap_label: Label
 
 var beat_interval: float = 0.5
 
@@ -18,14 +19,14 @@ func _ready() -> void:
 	_zone     = _make_rect(Color(0.2, 1.0, 0.4, 0.25), Vector2(1, BAR_H), Vector2.ZERO)
 	_cursor   = _make_rect(Color(1, 1, 1, 1), Vector2(4, BAR_H), Vector2.ZERO)
 
-	_bpm_label = Label.new()
-	_bpm_label.position = Vector2(8, BAR_H + 2)
-	_bpm_label.add_theme_font_size_override("font_size", 14)
-	_bpm_label.modulate = Color(0.8, 1.0, 0.8, 1)
-	add_child(_bpm_label)
+	_bpm_label = _make_label(Vector2(8, BAR_H + 2), Color(0.8, 1.0, 0.8, 1))
+	_tap_label = _make_label(Vector2(vp_w - 160, BAR_H + 2), Color(1.0, 0.9, 0.4, 1))
+	_tap_label.text = "TAP: —"
 
 	MusicManager.song_changed.connect(_on_song_changed)
 	MusicManager.bpm_updated.connect(_on_bpm_updated)
+	# Connexion au beat_controller via le parent de la scène
+	get_parent().get_node("Node2D").tap_bpm_updated.connect(_on_tap_bpm_updated)
 
 func _on_song_changed(data: Dictionary) -> void:
 	_on_bpm_updated(MusicManager.current_bpm)
@@ -54,6 +55,20 @@ func _process(_delta: float) -> void:
 	var half_norm := (hit_window_ms / 1000.0 / 2.0) / beat_interval
 	var in_zone := absf(display_phase - 0.5) < half_norm
 	_cursor.color = Color(0.3, 1.0, 0.5, 1) if in_zone else Color(1, 1, 1, 0.9)
+
+func _on_tap_bpm_updated(bpm: float) -> void:
+	_tap_label.text = "TAP: %d BPM" % roundi(bpm)
+	# Colore en vert si proche du BPM cible (±5), orange sinon
+	var diff := absf(bpm - MusicManager.base_bpm)
+	_tap_label.modulate = Color(0.3, 1.0, 0.4, 1) if diff <= 5.0 else Color(1.0, 0.9, 0.4, 1)
+
+func _make_label(pos: Vector2, color: Color) -> Label:
+	var l := Label.new()
+	l.position = pos
+	l.add_theme_font_size_override("font_size", 14)
+	l.modulate = color
+	add_child(l)
+	return l
 
 func _make_rect(color: Color, size: Vector2, pos: Vector2) -> ColorRect:
 	var r := ColorRect.new()
