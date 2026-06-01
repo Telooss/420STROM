@@ -33,6 +33,7 @@ const THUNK_COLOR := Color(1.0, 1.0, 1.0, 1)
 const MISS_COLOR  := Color(0.8, 0.1, 0.1, 1)
 
 func _ready() -> void:
+	add_to_group("player")
 	player_rect.color = BASE_COLOR
 	_click_player = AudioStreamPlayer.new()
 	_click_player.stream = _make_click_stream()
@@ -217,6 +218,15 @@ func _miss() -> void:
 	combo_changed.emit(0)
 	player_rect.color = MISS_COLOR
 	await get_tree().create_timer(0.1).timeout
+	player_rect.color = BASE_COLOR
+
+func on_enemy_contact() -> void:
+	if combo == 0:
+		return
+	combo = 0
+	combo_changed.emit(0)
+	player_rect.color = Color(1.0, 0.4, 0.0, 1)
+	await get_tree().create_timer(0.2).timeout
 	player_rect.color = BASE_COLOR
 
 func _make_click_stream() -> AudioStreamWAV:
