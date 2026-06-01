@@ -25,8 +25,8 @@ func _ready() -> void:
 
 	MusicManager.song_changed.connect(_on_song_changed)
 	MusicManager.bpm_updated.connect(_on_bpm_updated)
-	# Connexion au beat_controller via le parent de la scène
-	get_parent().get_node("Node2D").tap_bpm_updated.connect(_on_tap_bpm_updated)
+	# Le parent EST le Node2D avec le beat_controller
+	get_parent().tap_bpm_updated.connect(_on_tap_bpm_updated)
 
 func _on_song_changed(data: Dictionary) -> void:
 	_on_bpm_updated(MusicManager.current_bpm)
