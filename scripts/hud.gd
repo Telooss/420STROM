@@ -1,6 +1,7 @@
 extends CanvasLayer
 
-@export var hit_window_ms: float = 206.0
+## ⚠ Doit rester identique à hit_window_ms dans beat_controller.gd
+@export var hit_window_ms: float = 234.0
 
 var _bar_bg: ColorRect
 var _zone: ColorRect
