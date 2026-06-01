@@ -72,9 +72,12 @@ func scan_songs() -> Array[String]:
 	dir.list_dir_end()
 	return songs
 
+## Décalage manuel en ms si la détection de beat semble en avance ou en retard.
+## Positif = avance la grille, négatif = recule la grille.
+@export var latency_offset_ms: float = 0.0
+
 func get_playback_position() -> float:
-	var latency := AudioServer.get_time_since_last_mix() - AudioServer.get_output_latency()
-	return _player.get_playback_position() + latency
+	return _player.get_playback_position() + (latency_offset_ms / 1000.0)
 
 func is_playing() -> bool:
 	return _player.playing
