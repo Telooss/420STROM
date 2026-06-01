@@ -6,8 +6,8 @@
 script = ExtResource("1_beat")
 
 [node name="ColorRect" type="ColorRect" parent="." unique_id=407268278]
-offset_left = 68.0
-offset_top = -183.0
-offset_right = 208.0
-offset_bottom = -39.0
-color = Color(0.0142752165, 0.014275218, 0.014275218, 1)
+offset_left = 476.0
+offset_top = 276.0
+offset_right = 676.0
+offset_bottom = 476.0
+color = Color(0.2, 0.6, 1.0, 1)

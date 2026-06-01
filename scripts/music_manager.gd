@@ -51,7 +51,9 @@ func scan_songs() -> Array[String]:
 	return songs
 
 func get_playback_position() -> float:
-	return _player.get_playback_position()
+	# Compensate for audio output buffer latency so the position matches what the player actually hears
+	var latency := AudioServer.get_time_since_last_mix() - AudioServer.get_output_latency()
+	return _player.get_playback_position() + latency
 
 func is_playing() -> bool:
 	return _player.playing

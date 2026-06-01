@@ -11,16 +11,17 @@ config_version=5
 [application]
 
 config/name="RogueLike Rythms"
+run/main_scene="uid://bvy0iclloicfe"
 config/features=PackedStringArray("4.6", "Forward Plus")
 config/icon="res://icon.svg"
-
-[physics]
-
-3d/physics_engine="Jolt Physics"
 
 [autoload]
 
 MusicManager="*res://scripts/music_manager.gd"
+
+[physics]
+
+3d/physics_engine="Jolt Physics"
 
 [rendering]
 
