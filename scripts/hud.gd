@@ -105,27 +105,19 @@ func _on_combo_changed(count: int) -> void:
 
 func show_game_over(final_combo: int) -> void:
 	var vp := get_viewport().get_visible_rect().size
-
-	var overlay := _make_rect(Color(0, 0, 0, 0.75), vp, Vector2.ZERO)
+	_make_rect(Color(0, 0, 0, 0.75), vp, Vector2.ZERO)
 
 	var title := _make_label(Vector2(vp.x / 2.0 - 120, vp.y / 2.0 - 80), Color(1, 0.2, 0.2, 1))
 	title.text = "GAME OVER"
 	title.add_theme_font_size_override("font_size", 52)
 
-	var score := _make_label(Vector2(vp.x / 2.0 - 100, vp.y / 2.0), Color(1, 1, 1, 1))
+	var score := _make_label(Vector2(vp.x / 2.0 - 110, vp.y / 2.0), Color(1, 1, 1, 1))
 	score.text = "Meilleur combo : x%d" % final_combo
 	score.add_theme_font_size_override("font_size", 22)
 
 	var hint := _make_label(Vector2(vp.x / 2.0 - 80, vp.y / 2.0 + 50), Color(0.7, 0.7, 0.7, 1))
 	hint.text = "R pour recommencer"
 	hint.add_theme_font_size_override("font_size", 18)
-
-	set_process_input(true)
-
-func _input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed:
-		if event.keycode == KEY_R:
-			get_tree().reload_current_scene()
 
 func _make_label(pos: Vector2, color: Color) -> Label:
 	var l := Label.new()

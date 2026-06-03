@@ -6,6 +6,7 @@ extends Node2D
 ## ⚠ Doit rester identique à hit_window_ms dans hud.gd
 @export var hit_window_ms: float = 234.0
 @export var speed: float = 300.0
+@export var max_hp: int = 3
 
 @onready var player_rect: ColorRect = $ColorRect
 
@@ -19,8 +20,6 @@ signal calibration_status(text: String)
 signal combo_changed(count: int)
 signal hp_changed(current: int, maximum: int)
 
-@export var max_hp: int = 3
-
 var beat_interval: float = 0.5
 var combo: int = 0
 var hp: int = 3
@@ -33,6 +32,7 @@ var _last_phase: float = 0.0
 var _click_player: AudioStreamPlayer
 var _hit_cooldown: bool = false
 var _dead: bool = false
+var _world: Node2D  # Conteneur pour ennemis + projectiles — nettoyé au reload
 
 const BASE_COLOR  := Color(0.2, 0.6, 1.0, 1)
 const THUNK_COLOR := Color(1.0, 1.0, 1.0, 1)
@@ -42,10 +42,16 @@ func _ready() -> void:
 	add_to_group("player")
 	hp = max_hp
 	player_rect.color = BASE_COLOR
+
+	_world = Node2D.new()
+	_world.name = "World"
+	add_child(_world)
+
 	_click_player = AudioStreamPlayer.new()
 	_click_player.stream = _make_click_stream()
 	_click_player.volume_db = 3.0
 	add_child(_click_player)
+
 	_load_settings()
 	MusicManager.song_changed.connect(_on_song_changed)
 	var songs := MusicManager.scan_songs()
@@ -60,6 +66,8 @@ func _on_song_changed(song_data: Dictionary) -> void:
 	beat_interval = 60.0 / MusicManager.current_bpm
 
 func _process(delta: float) -> void:
+	if _dead:
+		return
 	_handle_movement(delta)
 	look_at(get_global_mouse_position())
 	if not MusicManager.is_playing():
@@ -67,7 +75,6 @@ func _process(delta: float) -> void:
 	var phase_norm := fmod(_compensated_pos(), beat_interval) / beat_interval
 	var pulse := 1.0 + 0.12 * (cos(TAU * phase_norm) * 0.5 + 0.5)
 	player_rect.scale = Vector2(pulse, pulse)
-	# Click sonore sur chaque beat pendant la calibration (même pipeline audio que la musique)
 	if _calibrating and phase_norm < 0.05 and _last_phase > 0.95:
 		_click_player.play()
 	_last_phase = phase_norm
@@ -81,6 +88,12 @@ func _handle_movement(delta: float) -> void:
 	position += direction.normalized() * speed * delta
 
 func _input(event: InputEvent) -> void:
+	# Restart uniquement quand mort
+	if _dead:
+		if event is InputEventKey and event.pressed and event.keycode == KEY_R:
+			get_tree().reload_current_scene()
+		return
+
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_C:
 			_start_calibration()
@@ -91,13 +104,12 @@ func _input(event: InputEvent) -> void:
 			else:
 				_on_player_shoot()
 
-# ── Calibration ──────────────────────────────────────────────────────────────
+# ── Calibration ───────────────────────────────────────────────────────────────
 
 func _start_calibration() -> void:
 	_calibrating = true
 	_calib_phases.clear()
 	calibration_status.emit("CALIBRATION — clique %d fois dans le rythme" % CALIB_TAPS)
-	print("=== Calibration démarrée — tape %d fois dans le rythme ===" % CALIB_TAPS)
 
 func _record_calib_tap() -> void:
 	if not MusicManager.is_playing():
@@ -106,13 +118,11 @@ func _record_calib_tap() -> void:
 	_calib_phases.append(phase)
 	var remaining := CALIB_TAPS - _calib_phases.size()
 	calibration_status.emit("CALIBRATION — encore %d taps..." % remaining if remaining > 0 else "")
-	print("Tap %d/%d — phase %.0f%%" % [_calib_phases.size(), CALIB_TAPS, phase * 100])
 	if _calib_phases.size() >= CALIB_TAPS:
 		_finish_calibration()
 
 func _finish_calibration() -> void:
 	_calibrating = false
-	# Moyenne circulaire pour gérer le wrap-around (ex: 90% et 10% → moyenne ≈ 0%)
 	var sum_sin := 0.0
 	var sum_cos := 0.0
 	for p in _calib_phases:
@@ -123,7 +133,6 @@ func _finish_calibration() -> void:
 	MusicManager.latency_offset_ms = offset_ms
 	_save_settings(offset_ms)
 	calibration_status.emit("Calibration OK — offset %.0fms" % offset_ms)
-	print("=== Calibration terminée — offset appliqué : %.0fms ===" % offset_ms)
 
 func _save_settings(offset_ms: float) -> void:
 	var file := FileAccess.open(SETTINGS_PATH, FileAccess.WRITE)
@@ -138,7 +147,6 @@ func _load_settings() -> void:
 	file.close()
 	if data is Dictionary:
 		MusicManager.latency_offset_ms = float(data.get("latency_offset_ms", 0.0))
-		print("Settings chargés — latency_offset: %.0fms" % MusicManager.latency_offset_ms)
 
 # ── Gameplay ──────────────────────────────────────────────────────────────────
 
@@ -163,15 +171,17 @@ func _spawn_projectile(on_beat: bool) -> void:
 	var p := PROJECTILE_SCENE.instantiate()
 	p.on_beat = on_beat
 	p.direction = Vector2.RIGHT.rotated(rotation)
-	get_parent().add_child(p)
+	_world.add_child(p)
 	p.global_position = global_position
 	var rect := p.get_node("ColorRect") as ColorRect
 	rect.color = Color(1.0, 1.0, 1.0, 1) if on_beat else Color(0.5, 0.5, 0.5, 0.6)
 
 func _spawn_enemy() -> void:
+	if _dead:
+		return
 	var e := ENEMY_SCENE.instantiate()
 	e.destroyed.connect(_on_enemy_destroyed)
-	get_parent().add_child(e)
+	_world.add_child(e)
 	var vp := get_viewport_rect()
 	var spawn_pos: Vector2
 	while true:
@@ -185,6 +195,8 @@ func _on_enemy_destroyed(on_beat: bool) -> void:
 		_thunk_hit()
 	else:
 		_miss()
+	if _dead:
+		return
 	await get_tree().create_timer(1.0).timeout
 	_spawn_enemy()
 
@@ -206,13 +218,11 @@ func _compensated_pos() -> float:
 	return maxf(MusicManager.get_playback_position() - song_offset, 0.0)
 
 func _thunk() -> void:
-	# Flash visuel au tir on-beat (pas de changement de combo)
 	player_rect.color = THUNK_COLOR
 	await get_tree().create_timer(0.05).timeout
 	player_rect.color = BASE_COLOR
 
 func _thunk_shot_miss() -> void:
-	# Tir off-beat dans le vide : feedback léger, pas de punition combo
 	player_rect.color = Color(0.5, 0.5, 0.5, 1)
 	await get_tree().create_timer(0.05).timeout
 	player_rect.color = BASE_COLOR
@@ -252,13 +262,15 @@ func on_enemy_contact() -> void:
 func _game_over() -> void:
 	_dead = true
 	MusicManager.stop()
+	# Nettoie tous les ennemis et projectiles
+	for child in _world.get_children():
+		child.queue_free()
 	Engine.time_scale = 0.0
 	await get_tree().create_timer(0.3, true, false, true).timeout
 	Engine.time_scale = 1.0
 	get_node("HUD").show_game_over(combo)
 
 func _make_click_stream() -> AudioStreamWAV:
-	# Génère un beep 880Hz de 60ms — même bus audio que la musique = même latence
 	var wav := AudioStreamWAV.new()
 	wav.format = AudioStreamWAV.FORMAT_16_BITS
 	wav.mix_rate = 44100
