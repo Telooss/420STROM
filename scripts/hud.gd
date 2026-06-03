@@ -49,9 +49,9 @@ func _ready() -> void:
 			Vector2(vp.x - (HEART_SIZE + HEART_GAP) * (max_hp - i), BAR_H + 4))
 		_hearts.append(h)
 
-	# Jauge de tenue — centrée sous le compteur combo
-	var jauge_x := vp.x / 2.0 - JAUGE_W / 2.0
-	var jauge_y := vp.y * 0.35 + 62.0
+	# Jauge de tenue — haut droite, sous les cœurs
+	var jauge_x := vp.x - JAUGE_W - 8.0
+	var jauge_y := BAR_H + HEART_SIZE + 10.0
 	_jauge_bg   = _make_rect(Color(0.15, 0.15, 0.2, 1), Vector2(JAUGE_W, JAUGE_H), Vector2(jauge_x, jauge_y))
 	_jauge_fill = _make_rect(Color(0.3, 1.0, 0.4, 1),   Vector2(JAUGE_W, JAUGE_H), Vector2(jauge_x, jauge_y))
 

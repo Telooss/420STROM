@@ -246,12 +246,12 @@ func _gain_jauge(pct: float) -> void:
 	jauge_changed.emit(jauge, jauge_max)
 
 func _break_combo() -> void:
-	combo = 0
-	jauge_max = 100.0
+	# Diminue progressivement : perd la moitié du combo, pas tout
+	combo = max(0, combo / 2)
+	jauge_max = 100.0 + combo * 5.0
 	jauge = jauge_max
-	combo_changed.emit(0)
+	combo_changed.emit(combo)
 	jauge_changed.emit(jauge, jauge_max)
-	# Flash rouge violent pour signaler la cassure
 	player_rect.color = Color(1.0, 0.0, 0.0, 1)
 	_flash_reset(BASE_COLOR, 0.18)
 
