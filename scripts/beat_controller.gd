@@ -33,6 +33,7 @@ var _click_player: AudioStreamPlayer
 var _hit_cooldown: bool = false
 var _dead: bool = false
 var _world: Node2D  # Conteneur pour ennemis + projectiles — nettoyé au reload
+var _aim_angle: float = 0.0
 
 const BASE_COLOR  := Color(0.2, 0.6, 1.0, 1)
 const THUNK_COLOR := Color(1.0, 1.0, 1.0, 1)
@@ -69,7 +70,10 @@ func _process(delta: float) -> void:
 	if _dead:
 		return
 	_handle_movement(delta)
-	look_at(get_global_mouse_position())
+	# On tourne uniquement le rect visuel, pas le Node2D racine
+	# (évite que _world et ses enfants héritent de la rotation)
+	_aim_angle = (get_global_mouse_position() - global_position).angle()
+	player_rect.rotation = _aim_angle
 	if not MusicManager.is_playing():
 		return
 	var phase_norm := fmod(_compensated_pos(), beat_interval) / beat_interval
@@ -173,7 +177,7 @@ func _on_player_shoot() -> void:
 func _spawn_projectile(on_beat: bool) -> void:
 	var p := PROJECTILE_SCENE.instantiate()
 	p.on_beat = on_beat
-	p.direction = Vector2.RIGHT.rotated(rotation)
+	p.direction = Vector2.RIGHT.rotated(_aim_angle)
 	_world.add_child(p)
 	p.global_position = global_position
 	var rect := p.get_node("ColorRect") as ColorRect
