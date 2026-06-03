@@ -17,9 +17,13 @@ const CALIB_TAPS       := 8
 signal tap_bpm_updated(bpm: float)
 signal calibration_status(text: String)
 signal combo_changed(count: int)
+signal hp_changed(current: int, maximum: int)
+
+@export var max_hp: int = 3
 
 var beat_interval: float = 0.5
 var combo: int = 0
+var hp: int = 3
 var song_offset: float = 0.0
 var _last_press_time: float = -999.0
 var _tap_times: Array[float] = []
@@ -28,6 +32,7 @@ var _calib_phases: Array[float] = []
 var _last_phase: float = 0.0
 var _click_player: AudioStreamPlayer
 var _hit_cooldown: bool = false
+var _dead: bool = false
 
 const BASE_COLOR  := Color(0.2, 0.6, 1.0, 1)
 const THUNK_COLOR := Color(1.0, 1.0, 1.0, 1)
@@ -35,6 +40,7 @@ const MISS_COLOR  := Color(0.8, 0.1, 0.1, 1)
 
 func _ready() -> void:
 	add_to_group("player")
+	hp = max_hp
 	player_rect.color = BASE_COLOR
 	_click_player = AudioStreamPlayer.new()
 	_click_player.stream = _make_click_stream()
@@ -228,15 +234,28 @@ func _miss() -> void:
 	player_rect.color = BASE_COLOR
 
 func on_enemy_contact() -> void:
-	if _hit_cooldown:
+	if _hit_cooldown or _dead:
 		return
 	_hit_cooldown = true
 	combo = 0
 	combo_changed.emit(0)
+	hp -= 1
+	hp_changed.emit(hp, max_hp)
+	if hp <= 0:
+		_game_over()
+		return
 	player_rect.color = Color(1.0, 0.4, 0.0, 1)
 	await get_tree().create_timer(0.5).timeout
 	player_rect.color = BASE_COLOR
 	_hit_cooldown = false
+
+func _game_over() -> void:
+	_dead = true
+	MusicManager.stop()
+	Engine.time_scale = 0.0
+	await get_tree().create_timer(0.3, true, false, true).timeout
+	Engine.time_scale = 1.0
+	get_node("HUD").show_game_over(combo)
 
 func _make_click_stream() -> AudioStreamWAV:
 	# Génère un beep 880Hz de 60ms — même bus audio que la musique = même latence
