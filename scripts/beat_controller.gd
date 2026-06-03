@@ -44,9 +44,9 @@ func _ready() -> void:
 	hp = max_hp
 	player_rect.color = BASE_COLOR
 
-	_world = Node2D.new()
-	_world.name = "World"
-	add_child(_world)
+	# World est un frère du joueur dans la scène — pas un enfant
+	# Donc les ennemis/projectiles ne suivent pas le déplacement du joueur
+	_world = get_parent().get_node("World")
 
 	_click_player = AudioStreamPlayer.new()
 	_click_player.stream = _make_click_stream()
@@ -279,7 +279,7 @@ func _game_over() -> void:
 	Engine.time_scale = 0.0
 	await get_tree().create_timer(0.3, true, false, true).timeout
 	Engine.time_scale = 1.0
-	get_node("HUD").show_game_over(combo)
+	get_parent().get_node("HUD").show_game_over(combo)
 
 func _make_click_stream() -> AudioStreamWAV:
 	var wav := AudioStreamWAV.new()

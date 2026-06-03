@@ -1,17 +1,21 @@
 [gd_scene format=3 uid="uid://bvy0iclloicfe"]
 
 [ext_resource type="Script" path="res://scripts/beat_controller.gd" id="1_beat"]
-[ext_resource type="PackedScene" uid="uid://hud00420storm" path="res://scenes/hud.tscn" id="2_hud"]
+[ext_resource type="PackedScene" uid="uid://dyx5f25q8ms0u" path="res://scenes/hud.tscn" id="2_hud"]
 
-[node name="Node2D" type="Node2D" unique_id=7197841]
+[node name="GameRoot" type="Node2D"]
+
+[node name="World" type="Node2D" parent="."]
+
+[node name="Player" type="Node2D" parent="."]
 position = Vector2(576, 324)
 script = ExtResource("1_beat")
 
-[node name="HUD" parent="." instance=ExtResource("2_hud")]
-
-[node name="ColorRect" type="ColorRect" parent="." unique_id=407268278]
+[node name="ColorRect" type="ColorRect" parent="Player"]
 offset_left = -40.0
 offset_top = -40.0
 offset_right = 40.0
 offset_bottom = 40.0
 color = Color(0.2, 0.6, 1.0, 1)
+
+[node name="HUD" parent="." instance=ExtResource("2_hud")]

@@ -37,7 +37,7 @@ func _ready() -> void:
 	_combo_label.text = ""
 
 	# Cœurs en haut à droite
-	var bc := get_parent()
+	var bc := get_parent().get_node("Player")
 	var max_hp: int = bc.max_hp if bc.get("max_hp") != null else 3
 	for i in max_hp:
 		var h := _make_rect(Color(1.0, 0.2, 0.2, 1),
@@ -45,11 +45,12 @@ func _ready() -> void:
 			Vector2(vp.x - (HEART_SIZE + HEART_GAP) * (max_hp - i), BAR_H + 4))
 		_hearts.append(h)
 
+	var player := get_parent().get_node("Player")
 	MusicManager.song_changed.connect(_on_song_changed)
-	get_parent().tap_bpm_updated.connect(_on_tap_bpm_updated)
-	get_parent().calibration_status.connect(_on_calibration_status)
-	get_parent().combo_changed.connect(_on_combo_changed)
-	get_parent().hp_changed.connect(_on_hp_changed)
+	player.tap_bpm_updated.connect(_on_tap_bpm_updated)
+	player.calibration_status.connect(_on_calibration_status)
+	player.combo_changed.connect(_on_combo_changed)
+	player.hp_changed.connect(_on_hp_changed)
 
 func _on_song_changed(_data: Dictionary) -> void:
 	beat_interval = 60.0 / MusicManager.current_bpm
