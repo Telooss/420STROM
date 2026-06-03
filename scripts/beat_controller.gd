@@ -19,10 +19,13 @@ signal tap_bpm_updated(bpm: float)
 signal calibration_status(text: String)
 signal combo_changed(count: int)
 signal hp_changed(current: int, maximum: int)
+signal jauge_changed(current: float, maximum: float)
 
 var beat_interval: float = 0.5
 var combo: int = 0
 var hp: int = 3
+var jauge: float = 100.0
+var jauge_max: float = 100.0
 var song_offset: float = 0.0
 var _last_press_time: float = -999.0
 var _tap_times: Array[float] = []
@@ -232,6 +235,26 @@ func _thunk_shot_miss() -> void:
 	player_rect.color = Color(0.5, 0.5, 0.5, 1)
 	_flash_reset(BASE_COLOR, 0.05)
 
+func _drain_jauge(pct: float) -> void:
+	jauge = maxf(jauge - jauge_max * pct, 0.0)
+	jauge_changed.emit(jauge, jauge_max)
+	if jauge <= 0.0:
+		_break_combo()
+
+func _gain_jauge(pct: float) -> void:
+	jauge = minf(jauge + jauge_max * pct, jauge_max)
+	jauge_changed.emit(jauge, jauge_max)
+
+func _break_combo() -> void:
+	combo = 0
+	jauge_max = 100.0
+	jauge = jauge_max
+	combo_changed.emit(0)
+	jauge_changed.emit(jauge, jauge_max)
+	# Flash rouge violent pour signaler la cassure
+	player_rect.color = Color(1.0, 0.0, 0.0, 1)
+	_flash_reset(BASE_COLOR, 0.18)
+
 func _flash_reset(to_color: Color, delay: float) -> void:
 	var t := create_tween()
 	t.tween_interval(delay)
@@ -239,6 +262,8 @@ func _flash_reset(to_color: Color, delay: float) -> void:
 
 func _thunk_hit() -> void:
 	combo += 1
+	jauge_max = 100.0 + combo * 5.0
+	_gain_jauge(0.15)
 	combo_changed.emit(combo)
 	player_rect.color = THUNK_COLOR
 	Engine.time_scale = 0.0
@@ -247,8 +272,7 @@ func _thunk_hit() -> void:
 	player_rect.color = BASE_COLOR
 
 func _miss() -> void:
-	combo = 0
-	combo_changed.emit(0)
+	_drain_jauge(0.25)
 	player_rect.color = MISS_COLOR
 	_flash_reset(BASE_COLOR, 0.1)
 
@@ -263,6 +287,7 @@ func on_enemy_contact() -> void:
 	if hp <= 0:
 		_game_over()
 		return
+	_drain_jauge(0.40)
 	player_rect.color = Color(1.0, 0.4, 0.0, 1)
 	var t := create_tween()
 	t.tween_interval(0.5)

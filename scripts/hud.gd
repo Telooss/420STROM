@@ -11,11 +11,15 @@ var _tap_label: Label
 var _calib_label: Label
 var _combo_label: Label
 var _hearts: Array[ColorRect] = []
+var _jauge_bg: ColorRect
+var _jauge_fill: ColorRect
 var beat_interval: float = 0.5
 
-const BAR_H     := 14
+const BAR_H      := 14
 const HEART_SIZE := 20
 const HEART_GAP  := 6
+const JAUGE_W    := 160
+const JAUGE_H    := 8
 
 func _ready() -> void:
 	var vp := get_viewport().get_visible_rect().size
@@ -45,12 +49,19 @@ func _ready() -> void:
 			Vector2(vp.x - (HEART_SIZE + HEART_GAP) * (max_hp - i), BAR_H + 4))
 		_hearts.append(h)
 
+	# Jauge de tenue — centrée sous le compteur combo
+	var jauge_x := vp.x / 2.0 - JAUGE_W / 2.0
+	var jauge_y := vp.y * 0.35 + 62.0
+	_jauge_bg   = _make_rect(Color(0.15, 0.15, 0.2, 1), Vector2(JAUGE_W, JAUGE_H), Vector2(jauge_x, jauge_y))
+	_jauge_fill = _make_rect(Color(0.3, 1.0, 0.4, 1),   Vector2(JAUGE_W, JAUGE_H), Vector2(jauge_x, jauge_y))
+
 	var player := get_parent().get_node("Player")
 	MusicManager.song_changed.connect(_on_song_changed)
 	player.tap_bpm_updated.connect(_on_tap_bpm_updated)
 	player.calibration_status.connect(_on_calibration_status)
 	player.combo_changed.connect(_on_combo_changed)
 	player.hp_changed.connect(_on_hp_changed)
+	player.jauge_changed.connect(_on_jauge_changed)
 
 func _on_song_changed(_data: Dictionary) -> void:
 	beat_interval = 60.0 / MusicManager.current_bpm
@@ -77,6 +88,19 @@ func _process(_delta: float) -> void:
 func _on_hp_changed(current: int, _maximum: int) -> void:
 	for i in _hearts.size():
 		_hearts[i].color = Color(1.0, 0.2, 0.2, 1) if i < current else Color(0.3, 0.3, 0.3, 1)
+
+func _on_jauge_changed(current: float, maximum: float) -> void:
+	var ratio := current / maximum if maximum > 0 else 0.0
+	_jauge_fill.size.x = JAUGE_W * ratio
+	# Couleur : vert → orange → rouge
+	var col: Color
+	if ratio > 0.6:
+		col = Color(0.3, 1.0, 0.4, 1)
+	elif ratio > 0.3:
+		col = Color(1.0, 0.7, 0.1, 1)
+	else:
+		col = Color(1.0, 0.2, 0.2, 1)
+	_jauge_fill.color = col
 
 func _on_tap_bpm_updated(bpm: float) -> void:
 	_tap_label.text = "TAP: %d BPM" % roundi(bpm)
