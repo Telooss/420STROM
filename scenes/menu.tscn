@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://menu420storm"]
+
+[ext_resource type="Script" path="res://scripts/menu.gd" id="1_menu"]
+
+[node name="Menu" type="Node"]
+script = ExtResource("1_menu")
