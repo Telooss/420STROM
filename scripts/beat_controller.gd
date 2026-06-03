@@ -151,10 +151,7 @@ func _on_player_shoot() -> void:
 	var phase_pct := beat_phase / beat_interval * 100.0
 	print("phase: %.0f%%  →  %s" % [phase_pct, "THUNK x%d" % (combo + 1) if on_beat else "miss"])
 	_spawn_projectile(on_beat)
-	if on_beat:
-		_thunk()
-	else:
-		_miss()
+	_thunk() if on_beat else _thunk_shot_miss()
 
 func _spawn_projectile(on_beat: bool) -> void:
 	var p := PROJECTILE_SCENE.instantiate()
@@ -180,6 +177,8 @@ func _spawn_enemy() -> void:
 func _on_enemy_destroyed(on_beat: bool) -> void:
 	if on_beat:
 		_thunk_hit()
+	else:
+		_miss()
 	await get_tree().create_timer(1.0).timeout
 	_spawn_enemy()
 
@@ -201,7 +200,14 @@ func _compensated_pos() -> float:
 	return maxf(MusicManager.get_playback_position() - song_offset, 0.0)
 
 func _thunk() -> void:
+	# Flash visuel au tir on-beat (pas de changement de combo)
 	player_rect.color = THUNK_COLOR
+	await get_tree().create_timer(0.05).timeout
+	player_rect.color = BASE_COLOR
+
+func _thunk_shot_miss() -> void:
+	# Tir off-beat dans le vide : feedback léger, pas de punition combo
+	player_rect.color = Color(0.5, 0.5, 0.5, 1)
 	await get_tree().create_timer(0.05).timeout
 	player_rect.color = BASE_COLOR
 
