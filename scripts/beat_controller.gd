@@ -7,6 +7,8 @@ extends Node2D
 @export var hit_window_ms: float = 234.0
 @export var speed: float = 300.0
 @export var max_hp: int = 3
+## Points de jauge perdus par seconde passivement (sans rien faire)
+@export var jauge_decay_per_sec: float = 12.0
 
 @onready var player_rect: ColorRect = $ColorRect
 
@@ -85,6 +87,9 @@ func _process(delta: float) -> void:
 	if _calibrating and phase_norm < 0.05 and _last_phase > 0.95:
 		_click_player.play()
 	_last_phase = phase_norm
+	# Décroissance passive de la jauge — oblige à rester en rythme
+	if combo > 0:
+		_drain_jauge_raw(jauge_decay_per_sec * delta)
 
 func _handle_movement(delta: float) -> void:
 	var direction := Vector2.ZERO
@@ -236,7 +241,10 @@ func _thunk_shot_miss() -> void:
 	_flash_reset(BASE_COLOR, 0.05)
 
 func _drain_jauge(pct: float) -> void:
-	jauge = maxf(jauge - jauge_max * pct, 0.0)
+	_drain_jauge_raw(jauge_max * pct)
+
+func _drain_jauge_raw(amount: float) -> void:
+	jauge = maxf(jauge - amount, 0.0)
 	jauge_changed.emit(jauge, jauge_max)
 	if jauge <= 0.0:
 		_break_combo()
@@ -246,11 +254,10 @@ func _gain_jauge(pct: float) -> void:
 	jauge_changed.emit(jauge, jauge_max)
 
 func _break_combo() -> void:
-	# Diminue progressivement : perd la moitié du combo, pas tout
-	combo = max(0, combo / 2)
-	jauge_max = 100.0 + combo * 5.0
+	combo = 0
+	jauge_max = 100.0
 	jauge = jauge_max
-	combo_changed.emit(combo)
+	combo_changed.emit(0)
 	jauge_changed.emit(jauge, jauge_max)
 	player_rect.color = Color(1.0, 0.0, 0.0, 1)
 	_flash_reset(BASE_COLOR, 0.18)
