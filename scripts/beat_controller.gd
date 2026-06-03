@@ -165,7 +165,10 @@ func _on_player_shoot() -> void:
 	var phase_pct := beat_phase / beat_interval * 100.0
 	print("phase: %.0f%%  →  %s" % [phase_pct, "THUNK x%d" % (combo + 1) if on_beat else "miss"])
 	_spawn_projectile(on_beat)
-	_thunk() if on_beat else _thunk_shot_miss()
+	if on_beat:
+		_thunk()
+	else:
+		_thunk_shot_miss()
 
 func _spawn_projectile(on_beat: bool) -> void:
 	var p := PROJECTILE_SCENE.instantiate()
@@ -219,13 +222,16 @@ func _compensated_pos() -> float:
 
 func _thunk() -> void:
 	player_rect.color = THUNK_COLOR
-	await get_tree().create_timer(0.05).timeout
-	player_rect.color = BASE_COLOR
+	_flash_reset(BASE_COLOR, 0.05)
 
 func _thunk_shot_miss() -> void:
 	player_rect.color = Color(0.5, 0.5, 0.5, 1)
-	await get_tree().create_timer(0.05).timeout
-	player_rect.color = BASE_COLOR
+	_flash_reset(BASE_COLOR, 0.05)
+
+func _flash_reset(to_color: Color, delay: float) -> void:
+	var t := create_tween()
+	t.tween_interval(delay)
+	t.tween_callback(func(): player_rect.color = to_color)
 
 func _thunk_hit() -> void:
 	combo += 1
@@ -240,8 +246,7 @@ func _miss() -> void:
 	combo = 0
 	combo_changed.emit(0)
 	player_rect.color = MISS_COLOR
-	await get_tree().create_timer(0.1).timeout
-	player_rect.color = BASE_COLOR
+	_flash_reset(BASE_COLOR, 0.1)
 
 func on_enemy_contact() -> void:
 	if _hit_cooldown or _dead:
@@ -255,9 +260,11 @@ func on_enemy_contact() -> void:
 		_game_over()
 		return
 	player_rect.color = Color(1.0, 0.4, 0.0, 1)
-	await get_tree().create_timer(0.5).timeout
-	player_rect.color = BASE_COLOR
-	_hit_cooldown = false
+	var t := create_tween()
+	t.tween_interval(0.5)
+	t.tween_callback(func():
+		player_rect.color = BASE_COLOR
+		_hit_cooldown = false)
 
 func _game_over() -> void:
 	_dead = true

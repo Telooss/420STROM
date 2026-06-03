@@ -11,8 +11,6 @@ var _tap_label: Label
 var _calib_label: Label
 var _combo_label: Label
 var _hearts: Array[ColorRect] = []
-var _game_over_layer: CanvasLayer
-
 var beat_interval: float = 0.5
 
 const BAR_H     := 14
@@ -75,7 +73,7 @@ func _process(_delta: float) -> void:
 	var half_norm := (hit_window_ms / 1000.0 / 2.0) / beat_interval
 	_cursor.color = Color(0.3, 1.0, 0.5, 1) if absf(display_phase - 0.5) < half_norm else Color(1, 1, 1, 0.9)
 
-func _on_hp_changed(current: int, maximum: int) -> void:
+func _on_hp_changed(current: int, _maximum: int) -> void:
 	for i in _hearts.size():
 		_hearts[i].color = Color(1.0, 0.2, 0.2, 1) if i < current else Color(0.3, 0.3, 0.3, 1)
 
@@ -105,7 +103,7 @@ func _on_combo_changed(count: int) -> void:
 
 func show_game_over(final_combo: int) -> void:
 	var vp := get_viewport().get_visible_rect().size
-	_make_rect(Color(0, 0, 0, 0.75), vp, Vector2.ZERO)
+	var _overlay := _make_rect(Color(0, 0, 0, 0.75), vp, Vector2.ZERO)
 
 	var title := _make_label(Vector2(vp.x / 2.0 - 120, vp.y / 2.0 - 80), Color(1, 0.2, 0.2, 1))
 	title.text = "GAME OVER"
