@@ -26,8 +26,9 @@ signal jauge_changed(current: float, maximum: float)
 var beat_interval: float = 0.5
 var combo: int = 0
 var hp: int = 3
-var jauge: float = 100.0
+var jauge: float = 0.0
 var jauge_max: float = 100.0
+var _consec_breaks: int = 0
 var song_offset: float = 0.0
 var _last_press_time: float = -999.0
 var _tap_times: Array[float] = []
@@ -87,8 +88,8 @@ func _process(delta: float) -> void:
 	if _calibrating and phase_norm < 0.05 and _last_phase > 0.95:
 		_click_player.play()
 	_last_phase = phase_norm
-	# Décroissance passive de la jauge — oblige à rester en rythme
-	if combo > 0:
+	# Décroissance passive — seulement si jauge > 0 et combo > 0
+	if combo > 0 and jauge > 0.0:
 		_drain_jauge_raw(jauge_decay_per_sec * delta)
 
 func _handle_movement(delta: float) -> void:
@@ -244,20 +245,31 @@ func _drain_jauge(pct: float) -> void:
 	_drain_jauge_raw(jauge_max * pct)
 
 func _drain_jauge_raw(amount: float) -> void:
+	var was_positive := jauge > 0.0
 	jauge = maxf(jauge - amount, 0.0)
 	jauge_changed.emit(jauge, jauge_max)
-	if jauge <= 0.0:
+	# Déclenche un break seulement quand on croise 0 (pas si déjà à 0)
+	if was_positive and jauge <= 0.0:
 		_break_combo()
 
 func _gain_jauge(pct: float) -> void:
+	var was_empty := jauge <= 0.0
 	jauge = minf(jauge + jauge_max * pct, jauge_max)
+	# Si on recharge depuis 0 → reset les breaks consécutifs
+	if was_empty and jauge > 0.0:
+		_consec_breaks = 0
 	jauge_changed.emit(jauge, jauge_max)
 
 func _break_combo() -> void:
-	combo = 0
-	jauge_max = 100.0
-	jauge = jauge_max
-	combo_changed.emit(0)
+	_consec_breaks += 1
+	if _consec_breaks == 1:
+		combo = max(0, combo / 2)  # Division entière, min 0
+	else:
+		combo = 0
+		_consec_breaks = 0
+	jauge_max = 100.0 + combo * 5.0
+	# Jauge reste à 0 — le joueur doit la refaire en jouant
+	combo_changed.emit(combo)
 	jauge_changed.emit(jauge, jauge_max)
 	player_rect.color = Color(1.0, 0.0, 0.0, 1)
 	_flash_reset(BASE_COLOR, 0.18)
